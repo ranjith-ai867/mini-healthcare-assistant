@@ -11,8 +11,23 @@ The application demonstrates:
 * Hugging Face Inference API integration
 * Gradio-based user interface
 * Rule-based fallback handling when the LLM is unavailable
+* Cloud deployment using Render
 
 > **Educational prototype only.** All user data is synthetic. This application does not provide medical diagnosis or treatment.
+
+## Live Demo
+
+**Live Application:**
+
+https://mini-healthcare-assistant.onrender.com
+
+The application is deployed as a Render Web Service and is publicly accessible for evaluation.
+
+## GitHub Repository
+
+**Repository:**
+
+https://github.com/ranjith-ai867/mini-healthcare-assistant
 
 ## Features
 
@@ -63,11 +78,13 @@ The question is sent to the LLM and the answer is returned to the user. After an
 * **Hugging Face Inference API**
 * **Hugging Face Hub**
 * **python-dotenv**
+* **Faker**
 
 ## Project Structure
 
 ```text
 mini-healthcare-assistant/
+
 │
 ├── app.py
 ├── agents.py
@@ -89,7 +106,7 @@ mini-healthcare-assistant/
 ### 1. Clone the repository
 
 ```bash
-git clone YOUR_GITHUB_REPOSITORY_URL
+git clone https://github.com/ranjith-ai867/mini-healthcare-assistant.git
 cd mini-healthcare-assistant
 ```
 
@@ -147,48 +164,43 @@ pytest
 
 The tests cover the core agent behavior, including fallback behavior when the LLM is unavailable.
 
-## Hugging Face Spaces Deployment
+## Deployment
 
-The application is designed to run as a **Hugging Face Space using the Gradio SDK**.
+The application is currently deployed as a **Render Web Service**.
 
-### Deployment steps
+### Render Configuration
 
-1. Create a new Hugging Face Space.
-2. Select **Gradio** as the SDK.
-3. Upload or push the project files.
-4. Make sure `requirements.txt` is included.
-5. Add the Hugging Face token under:
+The deployment uses:
+
+* Python Web Service
+* Build command:
 
 ```text
-Settings → Variables and secrets
+pip install -r requirements.txt
 ```
 
-Add:
+* Start command:
+
+```text
+python -u app.py
+```
+
+* Public port configured through the Render `PORT` environment variable
+* Gradio configured to listen on `0.0.0.0`
+
+### Environment Variables
+
+The following environment variables are configured securely in the deployment environment:
 
 ```text
 HF_TOKEN
+LLM_MODEL
+HF_PROVIDER
+GRADIO_SERVER_NAME
+GRADIO_SERVER_PORT
 ```
 
-as a **Secret**.
-
-Add the model configuration as a Space variable if required:
-
-```text
-LLM_MODEL = openai/gpt-oss-120b
-HF_PROVIDER = auto
-```
-
-The Space automatically installs the dependencies and launches `app.py`.
-
-## GitHub Repository
-
-**Repository:**
-`YOUR_GITHUB_REPOSITORY_URL`
-
-## Live Demo
-
-**Hugging Face Space:**
-`YOUR_HUGGINGFACE_SPACE_URL`
+The Hugging Face token is stored as a secret and is not included in the repository.
 
 ## Design Decisions
 
@@ -202,7 +214,7 @@ The dataset is generated using Faker and is intended only for demonstration purp
 
 The application uses the Hugging Face Inference API rather than hosting a local language model.
 
-This keeps the project lightweight and makes it easier to deploy to Hugging Face Spaces.
+This keeps the project lightweight and separates the application logic from the model provider.
 
 The LLM integration is isolated inside `llm.py`, while the individual agents use the shared LLM client.
 
@@ -214,15 +226,15 @@ The three agents have clearly separated responsibilities:
 
 ```text
 User
- │
- ▼
+  │
+  ▼
 Gradio UI
- │
- ├──► GreetingAgent
- │
- ├──► CGMMealPlannerAgent ──► Hugging Face LLM
- │
- └──► InterruptAgent ────────► Hugging Face LLM
+  │
+  ├──► GreetingAgent
+  │
+  ├──► CGMMealPlannerAgent ──► Hugging Face LLM
+  │
+  └──► InterruptAgent ────────► Hugging Face LLM
 ```
 
 This approach keeps the implementation simple and easy to understand within the scope of the assignment.
@@ -274,7 +286,7 @@ Add a retrieval-augmented generation layer using trusted healthcare documentatio
 
 ### Docker
 
-Add a `Dockerfile` and container configuration for reproducible deployment outside Hugging Face Spaces.
+Add a `Dockerfile` and container configuration for reproducible deployment across different environments.
 
 ### Authentication
 
