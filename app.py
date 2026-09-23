@@ -205,10 +205,11 @@ with gr.Blocks(title="Mini Healthcare Assistant") as demo:
 # 6. LAUNCH APPLICATION
 # ==========================================
 if __name__ == "__main__":
+    print("APP STARTING", flush=True)
 
     import os
 
-    port = int(os.environ.get("PORT", 7860))
+    port = int(os.environ.get("PORT", 10000))
 
     demo.launch(
         server_name="0.0.0.0",
