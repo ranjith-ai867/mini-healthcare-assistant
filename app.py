@@ -1,16 +1,13 @@
-"""
-app.py
-------
-Main entry point for the Mini Healthcare Assistant. Defines the Gradio
-interface and connects the three agents (Greeting, CGM + Meal Planner,
-Interrupt/Q&A).
-"""
-
 import gradio as gr
 
-from agents import CGMMealPlannerAgent, GreetingAgent, InterruptAgent
 from data import ensure_dataset, load_users
+from agents import (
+    GreetingAgent,
+    CGMMealPlannerAgent,
+    InterruptAgent
+)
 from llm import LLMClient
+
 
 # ==========================================
 # 1. INITIALIZE DATA AND AGENTS
@@ -18,11 +15,16 @@ from llm import LLMClient
 
 DATA_PATH = "data/synthetic_users.csv"
 
-ensure_dataset(DATA_PATH)          # Generate the synthetic dataset if missing
-users = load_users(DATA_PATH)      # Load synthetic users
+# Generate the synthetic dataset if it doesn't exist
+ensure_dataset(DATA_PATH)
 
-llm = LLMClient()                  # Uses HF_TOKEN if set, else falls back gracefully
+# Load synthetic users
+users = load_users(DATA_PATH)
 
+# Initialize the LLM client
+llm = LLMClient()
+
+# Initialize the three agents
 greeting_agent = GreetingAgent(users)
 meal_planner_agent = CGMMealPlannerAgent(llm)
 interrupt_agent = InterruptAgent(llm)
@@ -33,10 +35,19 @@ interrupt_agent = InterruptAgent(llm)
 # ==========================================
 
 def greet_user(user_id):
+
     result = greeting_agent.run(user_id)
+
     if not result["ok"]:
-        return result["message"], None
-    return result["message"], result["user"]
+        return (
+            result["message"],
+            None
+        )
+
+    return (
+        result["message"],
+        result["user"]
+    )
 
 
 # ==========================================
@@ -44,8 +55,9 @@ def greet_user(user_id):
 # ==========================================
 
 def generate_meal_plan(user, glucose):
+
     if user is None:
-        return "Please find a valid User ID first."
+        return "Please enter a valid User ID first."
 
     if glucose is None:
         return "Please enter your CGM reading."
@@ -56,6 +68,7 @@ def generate_meal_plan(user, glucose):
         return "Please enter a valid whole-number CGM reading."
 
     result = meal_planner_agent.run(user, glucose)
+
     return result["message"]
 
 
@@ -64,9 +77,16 @@ def generate_meal_plan(user, glucose):
 # ==========================================
 
 def answer_question(question, user):
+
     if not question or not question.strip():
         return "Please enter a question."
-    return interrupt_agent.run(question.strip(), user)
+
+    result = interrupt_agent.run(
+        question.strip(),
+        user
+    )
+
+    return result
 
 
 # ==========================================
@@ -77,72 +97,120 @@ with gr.Blocks(title="Mini Healthcare Assistant") as demo:
 
     gr.Markdown(
         """
-        # 🩺 Mini Healthcare Assistant
+        # Mini Healthcare Assistant
 
-        A small multi-agent demo using synthetic user profiles and an
-        LLM-driven, CGM-aware meal planner.
+        A simple multi-agent healthcare demonstration using
+        synthetic user profiles and an LLM.
 
-        **Important:** Educational prototype only — synthetic data,
-        no medical diagnosis or treatment advice.
+        **Important:** This is an educational prototype.
+        It does not provide medical diagnosis or treatment.
         """
     )
 
-    # ---- User Identification ----
+    # --------------------------------------
+    # USER IDENTIFICATION
+    # --------------------------------------
+
     gr.Markdown("## 1. User Identification")
 
     with gr.Row():
-        user_id = gr.Textbox(label="Enter User ID", placeholder="Example: U001")
-        find_user_button = gr.Button("Find User", variant="primary")
+
+        user_id = gr.Textbox(
+            label="Enter User ID",
+            placeholder="Example: U001"
+        )
+
+        find_user_button = gr.Button(
+            "Find User",
+            variant="primary"
+        )
 
     greeting_output = gr.Markdown()
-    user_state = gr.State(None)  # holds the selected user profile
+
+    # Stores the selected user profile between interactions
+    user_state = gr.State(None)
 
     find_user_button.click(
         fn=greet_user,
         inputs=[user_id],
-        outputs=[greeting_output, user_state],
+        outputs=[greeting_output, user_state]
     )
 
-    # ---- CGM + Meal Planner ----
+    # --------------------------------------
+    # CGM + MEAL PLANNER
+    # --------------------------------------
+
     gr.Markdown("## 2. CGM Reading and Meal Planner")
 
-    glucose_input = gr.Number(label="Enter CGM Reading (mg/dL)", value=None, precision=0)
-    generate_button = gr.Button("Generate Today's Meal Plan", variant="primary")
+    glucose_input = gr.Number(
+        label="Enter CGM Reading (mg/dL)",
+        value=None,
+        precision=0
+    )
+
+    generate_button = gr.Button(
+        "Generate Today's Meal Plan",
+        variant="primary"
+    )
+
     meal_plan_output = gr.Markdown()
 
     generate_button.click(
         fn=generate_meal_plan,
         inputs=[user_state, glucose_input],
-        outputs=[meal_plan_output],
+        outputs=[meal_plan_output]
     )
 
-    # ---- Interrupt Agent (Q&A) ----
+    # --------------------------------------
+    # INTERRUPT AGENT
+    # --------------------------------------
+
     gr.Markdown("## 3. Ask a General Question")
 
-    question_input = gr.Textbox(label="Your Question", placeholder="Ask an unrelated question here...")
+    question_input = gr.Textbox(
+        label="Your Question",
+        placeholder="Ask an unrelated question here..."
+    )
+
     ask_button = gr.Button("Ask Question")
+
     answer_output = gr.Markdown()
 
     ask_button.click(
         fn=answer_question,
         inputs=[question_input, user_state],
-        outputs=[answer_output],
+        outputs=[answer_output]
     )
 
-    # ---- Footer ----
+    # --------------------------------------
+    # FOOTER
+    # --------------------------------------
+
     gr.Markdown(
         """
         ---
-        **Data:** Synthetic profiles only (generated with Faker).
+        **Data:** Synthetic profiles only.
 
-        **Agents:** Greeting Agent · CGM + Meal Planner Agent · Interrupt Agent
+        **Agents:** Greeting Agent, CGM + Meal Planner Agent,
+        and Interrupt Agent.
 
-        **Safety:** The 80–300 mg/dL range is an assignment requirement, not a
-        personalized clinical target. Always follow guidance from a qualified
-        healthcare professional.
+        **Safety:** The CGM range is an assignment requirement,
+        not a personalized clinical target. Always follow
+        guidance from a qualified healthcare professional.
         """
     )
 
 
+# ==========================================
+# 6. LAUNCH APPLICATION
+# ==========================================
 if __name__ == "__main__":
-    demo.launch()
+
+    import os
+
+    port = int(os.environ.get("PORT", 7860))
+
+    demo.launch(
+        server_name="0.0.0.0",
+        server_port=port
+    )
